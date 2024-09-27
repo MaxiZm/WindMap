@@ -15,12 +15,17 @@ public class Canvas extends JPanel {
 
     private final int FPS = 60;
 
-    private final int FNUM = 500;
+    private int width, height;
+
+    private final int FNUM = 200;
     private final int R = 2;
 
     public Canvas(WindStation[] windStatio) {
         windStations = new ArrayList<>();
         windStations.addAll(Arrays.asList(windStatio));
+
+        this.setFocusable(true);
+        this.requestFocus();
 
 
         Timer timer = new Timer(1000 / FPS, e -> {
@@ -46,6 +51,26 @@ public class Canvas extends JPanel {
             public void mouseMoved(java.awt.event.MouseEvent evt) {
                 super.mouseMoved(evt);
                 mousePos = new Point(evt.getX(), evt.getY());
+            }
+        });
+
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                super.componentResized(evt);
+                width = getWidth();
+                height = getHeight();
+            }
+        });
+
+        addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                super.keyPressed(evt);
+                if (evt.getKeyChar() == 'r' || evt.getKeyChar() == 'к') {
+                    windStations.clear();
+                    flyingWindPoints.clear();
+                } else if (evt.getKeyChar() == 'c' || evt.getKeyChar() == 'с') {
+                    flyingWindPoints.clear();
+                }
             }
         });
     }
@@ -108,7 +133,7 @@ public class Canvas extends JPanel {
 
     private void update() {
         if (flyingWindPoints.size() < FNUM) {
-            Point pos = new Point((int) (Math.random() * 800), (int) (Math.random() * 600));
+            Point pos = new Point((int) (Math.random() * width), (int) (Math.random() * height));
 
             flyingWindPoints.add(new FlyingWindPoint(pos, new Vector(0, 0), (int)(Math.random() * 350 + 50)));
         }
@@ -133,18 +158,17 @@ public class Canvas extends JPanel {
             flyingWindPoints.get(i).update(FPS);
         }
 
-        for (int i = 0; i < windStations.size(); i++){
-            int j = i + 1;
-            // windStations.get(i).setWind(windStations.get(i).getWind().rotate((double) 0.01));
-        }
     }
 
     public void open(String[] args) {
         JFrame frame = new JFrame("WindMap");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 600);
+        this.width = 800;
+        this.height = 600;
         frame.add(this);
         frame.setVisible(true);
-        frame.setResizable(false);
+        frame.setResizable(true);
+
     }
 }

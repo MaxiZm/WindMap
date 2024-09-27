@@ -19,6 +19,8 @@ WindMap is a Java application that simulates the movement of wind on a map. It u
 
 - Run the `open` method in the `Canvas` class to start the application.
 - Click anywhere on the map to add a new wind station.
+- Press R to reset the wind stations.
+- Press C to clear the wind points.
 
 ## Contributing
 
