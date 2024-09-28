@@ -16,7 +16,7 @@ public class Canvas extends JPanel {
 
     private int width, height;
 
-    private final int FNUM = 200;
+    private final int FNUM = 50;
     private final int R = 2;
 
     public Canvas(WindStation[] windStatio) {
