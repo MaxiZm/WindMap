@@ -1,4 +1,3 @@
-import javax.annotation.processing.SupportedSourceVersion;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -26,7 +25,6 @@ public class Canvas extends JPanel {
 
         this.setFocusable(true);
         this.requestFocus();
-
 
         Timer timer = new Timer(1000 / FPS, e -> {
             Thread th1 = new Thread(() -> {
@@ -78,22 +76,28 @@ public class Canvas extends JPanel {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
+
+        // Add background gradient
         Graphics2D g2d = (Graphics2D) g;
+        // Enable anti-aliasing for smoother graphics
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Create a gradient background from dark blue to black
+        GradientPaint gp = new GradientPaint(0, 0, new Color(0, 0, 50), 0, getHeight(), Color.BLACK);
+        g2d.setPaint(gp);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
+
         draw(g2d);
     }
 
-
     public void mouseClickedHandler(double x, double y) {
         if (lastClick != null) {
-            windStations.add(new WindStation(lastClick, new Vector(x - lastClick.getX(), y - lastClick.getY()).scale((double) 1 /50)));
+            windStations.add(new WindStation(lastClick, new Vector(x - lastClick.getX(), y - lastClick.getY()).scale((double) 1 / 50)));
             lastClick = null;
         } else {
             lastClick = new Point(x, y);
         }
     }
-
-
 
     private void draw(Graphics2D g2d) {
         for (WindStation windStation : windStations) {
@@ -101,10 +105,23 @@ public class Canvas extends JPanel {
             wx = (int) windStation.getPos().getX();
             wy = (int) windStation.getPos().getY();
 
-            g2d.setColor(Color.BLACK);
+            // Get wind intensity
+            double intensity = windStation.getWind().getMagnitude();
+
+            // Map intensity to a color (blue for low intensity, red for high)
+            float hue = (float) (0.7 - Math.min(intensity / 10.0, 1.0) * 0.7);
+            Color windColor = Color.getHSBColor(hue, 1.0f, 1.0f);
+
+            // Draw the wind station circle
+            g2d.setColor(windColor);
             g2d.fillOval(wx - 10, wy - 10, 20, 20);
-            g2d.setColor(Color.RED);
-            g2d.drawLine(wx, wy, wx + (int) windStation.getWind().getX() * 50, wy + (int) windStation.getWind().getY() * 50);
+
+            // Draw the wind direction line
+            g2d.setColor(windColor);
+            g2d.setStroke(new BasicStroke(2));
+            int lineX = wx + (int) (windStation.getWind().getX() * 50);
+            int lineY = wy + (int) (windStation.getWind().getY() * 50);
+            g2d.drawLine(wx, wy, lineX, lineY);
         }
 
         for (FlyingWindPoint flyingWindPoint : flyingWindPoints) {
@@ -112,11 +129,22 @@ public class Canvas extends JPanel {
             wx = (int) flyingWindPoint.getPos().getX();
             wy = (int) flyingWindPoint.getPos().getY();
 
-            g2d.setColor(Color.BLUE);
-            g2d.fillOval(wx - R, wy - R, R*2, R*2);
-            // set color dynamically according to speed;
+            // Get speed magnitude
+            double speed = flyingWindPoint.getSpeed().getMagnitude();
+
+            // Map speed to a color (blue for low speed, red for high)
+            float hue = (float) (0.7 - Math.min(speed / 10.0, 1.0) * 0.7);
+            Color pointColor = Color.getHSBColor(hue, 1.0f, 1.0f);
+
+            // Draw the point
+            g2d.setColor(pointColor);
+            g2d.fillOval(wx - R, wy - R, R * 2, R * 2);
+
+            // Draw the trajectory with fading effect
             for (int i = 0; i < flyingWindPoint.getTrajectory().size() - 1; i++) {
-                g2d.setColor(new Color(0, 0, 255, 255 - 255 * i / flyingWindPoint.getTrajectory().size()));
+                int alpha = 255 - 255 * i / flyingWindPoint.getTrajectory().size();
+                Color trajectoryColor = new Color(pointColor.getRed(), pointColor.getGreen(), pointColor.getBlue(), alpha);
+                g2d.setColor(trajectoryColor);
                 Point p1 = flyingWindPoint.getTrajectory().get(i);
                 Point p2 = flyingWindPoint.getTrajectory().get(i + 1);
                 g2d.drawLine((int) p1.getX(), (int) p1.getY(), (int) p2.getX(), (int) p2.getY());
@@ -124,18 +152,15 @@ public class Canvas extends JPanel {
         }
 
         if (lastClick != null && mousePos != null) {
-            g2d.setColor(Color.BLACK);
+            g2d.setColor(Color.LIGHT_GRAY);
             g2d.drawLine((int) lastClick.getX(), (int) lastClick.getY(), (int) mousePos.getX(), (int) mousePos.getY());
-
         }
-
     }
 
     private void update() {
         if (flyingWindPoints.size() < FNUM) {
             Point pos = new Point((int) (Math.random() * width), (int) (Math.random() * height));
-
-            flyingWindPoints.add(new FlyingWindPoint(pos, new Vector(0, 0), (int)(Math.random() * 350 + 50)));
+            flyingWindPoints.add(new FlyingWindPoint(pos, new Vector(0, 0), (int) (Math.random() * 350 + 50)));
         }
 
         for (int i = 0; i < flyingWindPoints.size(); i++) {
@@ -145,19 +170,17 @@ public class Canvas extends JPanel {
                 continue;
             }
 
-
             Vector speed = new Vector(0, 0);
             for (WindStation windStation : windStations) {
+                double distance = windStation.getPos().distance(flyingWindPoints.get(i).getPos());
                 speed = speed.add(windStation.getWind().scale(
-                        10000 / Math.pow(windStation.getPos().distance(flyingWindPoints.get(i).getPos()), 0.75)
+                        10000 / Math.pow(distance, 0.75)
                 ));
             }
 
             flyingWindPoints.get(i).setSpeed(speed);
-
             flyingWindPoints.get(i).update(FPS);
         }
-
     }
 
     public void open(String[] args) {
@@ -169,6 +192,5 @@ public class Canvas extends JPanel {
         frame.add(this);
         frame.setVisible(true);
         frame.setResizable(true);
-
     }
 }
